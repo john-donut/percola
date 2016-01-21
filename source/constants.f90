@@ -1,6 +1,6 @@
 module constants
     integer:: dim=2     !pour commencer
-    real(8):: pi=3.14
+    real(8):: pi=3.1415	!manque de précision
 
 end module
 
