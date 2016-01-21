@@ -1,2 +1,2 @@
 # percola
-Tsting repository for percolation project
+Testing repository for percolation project. Fortran code for numerical simulations.
