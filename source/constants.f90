@@ -1,6 +1,6 @@
 module constants
     integer:: dim=2     !pour commencer
-    real(8):: pi=3. !manque de précision
+    real(8):: pi=3.1415 !manque de précision
 !a cow in a vacuum
 
 end module
