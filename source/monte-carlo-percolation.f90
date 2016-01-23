@@ -16,11 +16,11 @@ module constants_mcp
     integer, parameter :: EMPTY=(-N-1) !?
     integer, dimension(N) :: ptr, order   !Array of pointers, Nearest neighbors
     integer, dimension(N,4) :: nn      !Occupation order
-end module
+contains
 
 subroutine  boundaries()
     !Next we set up the array nn()() which contains a list of the nearest neighbors of each site. Only this array need be changed in order for the program to work with a lattice of different topology.
-    use constants_mcp
+    !use constants_mcp
     implicit none
     integer :: i
 
@@ -48,7 +48,7 @@ end function drand
 
 subroutine permutation
     !Now we generate the random order in which the sites will be occupied, by randomly permuting the integers from 0 to N − 1:
-    use constants_mcp
+    !use constants_mcp
     integer :: i, j, temp
     do i=0, N
     order(i) = i
@@ -61,9 +61,9 @@ subroutine permutation
     enddo
 end subroutine
 
-recursive integer(4) function findroot(i) result(res)
+recursive integer(8) function findroot(i) result(res)
 !We also define a function which performs the “find" operation, returning the label of the root site of a cluster, as well as path compression.
-    use constants_mcp
+    !use constants_mcp
     implicit none
     integer, intent(in) ::  i
     !integer             ::  res
@@ -75,9 +75,10 @@ recursive integer(4) function findroot(i) result(res)
 end function
 
 subroutine percolate
-    use constants_mcp
+    !use constants_mcp
     implicit none
-    integer(4), external :: findroot
+    !integer(4), external :: findroot
+    !external works but depreciated
     integer :: i,j,s1,s2,r1,r2,big=0
     do i=0, N
         ptr(i) = EMPTY
@@ -90,7 +91,7 @@ subroutine percolate
             s2 = nn(s1,j)
             if (ptr(s2) /= EMPTY) then
                 r2 = findroot(s2)
-                !bug: Return type mismatch of function ‘findroot’ at (REAL(4)/INTEGER(4))
+                !bug: Return type mismatch of function ‘findroot’ at (REAL(4)/INTEGER(4))-> seems solved
                 if (r2 /= r1) then
                     if (ptr(r1)>ptr(r2)) then
                         ptr(r2) = ptr(r2)+ ptr(r1)
@@ -110,9 +111,11 @@ subroutine percolate
     enddo
 end subroutine
 
+end module constants_mcp
+
 program main
     use constants_mcp
-    !allocate somewhere
+    !allocate somewhere for dynamical arrays
     !Consiter using function subroutine init_random_seed() defined here:
     !https://gcc.gnu.org/onlinedocs/gfortran/RANDOM_005fSEED.html#RANDOM_005fSEED
     !call random_seed(size = n) to init the seed for random number generation
