@@ -37,36 +37,37 @@ subroutine  boundaries()
 end subroutine
 
 function drand() result(r)
-!Here the function drand() generates a random double precision floating point number between 0 and 1. Used in permutation
+    !Here the function drand() generates a random double precision floating point number between 0 and 1. Used in permutation
     implicit none
     real(4) :: r !bug real4/real8 to be investigated
     call random_number(r)
 end function drand
 
 subroutine permutation
-!Now we generate the random order in which the sites will be occupied, by randomly permuting the integers from 0 to N − 1:
+    !Now we generate the random order in which the sites will be occupied, by randomly permuting the integers from 0 to N − 1:
     use constants_mcp
     integer :: i, j, temp
     do i=0, N
-        order(i) = i
+    order(i) = i
     enddo
     do i=0, N
-        j = i + (N-i)*drand()
-        temp = order(i)
-        order(i) = order(j)
-        order(j) = temp
+    j = i + (N-i)*drand()
+    temp = order(i)
+    order(i) = order(j)
+    order(j) = temp
     enddo
 end subroutine
 
-function findroot(i)
-    !We also define a function which performs the “find" operation, returning the label of the root site of a cluster, as well as path compression.
-    !issue with recursive functions in fortran
+recursive function findroot(i) result(res)
+!We also define a function which performs the “find" operation, returning the label of the root site of a cluster, as well as path compression.
     use constants_mcp
-    !    integer, intent(in) :: i
-    !    if (ptr(i)<0) then
-    !        return i
-    !    else
-    !        ptr(i) = findroot(ptr(i))
+    integer, intent(in) ::  i
+    integer             ::  res
+    if(ptr(i)<0) then
+        res=i
+    else
+        ptr(i) = findroot(ptr(i))
+    endif
 end function
 
 !subroutine percolate
@@ -105,8 +106,8 @@ program main
     !Consiter using function subroutine init_random_seed() defined here:
     !https://gcc.gnu.org/onlinedocs/gfortran/RANDOM_005fSEED.html#RANDOM_005fSEED
     !call random_seed(size = n) to init the seed for random number generation
-    
-        call boundaries
-        call permutation
+
+    call boundaries
+    call permutation
     !    call percolate
 end program
