@@ -19,19 +19,20 @@ contains
     subroutine boundaries()
         !Next we set up the array nn()() which contains a list of the nearest neighbors of each site. Only this array need be changed in order for the program to work with a lattice of different topology.
         implicit none
-        integer :: i
+        integer :: i,j
 
-        do i=1, N   
-        nn(i,1) = mod(i,N)
-        nn(i,2) = mod((i+N-2),N)
-        nn(i,3) = mod((i+L-1),N)
-        nn(i,4) = mod((i+N-L-1),N)
-        if (mod(i,L)==0) then
-            nn(i,2) = i+L-1
-        endif
-        if (mod((i+1),L)==0) then   !conditions aux limites périodiques
-            nn(i,1) = i-L+1 
-        endif
+        do i=1, N  
+            nn(i,1)=mod(i+1,N)  !droite
+            if (mod(i,L)==0) then   !conditions aux limites périodiques
+                nn(i,1) = i-L+1 
+            endif
+            nn(i,2)=mod(i-1+N,N)    !gauche
+            if(mod(i,L)==1) then 
+                nn(i,2)=i+L-1
+            endif
+            nn(i,3)=mod(i+L,N)     !bas
+            nn(i,4)=mod(i-L+N,N)    !haut
+            write(*,*), "matrice",i, " " , (nn(i,j),j=1,4)
         enddo
     end subroutine
 
