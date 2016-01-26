@@ -9,7 +9,7 @@
 
 module constants_mcp
     implicit none
-    integer, parameter :: L=128   !Linear dimension
+    integer, parameter :: L=10   !Linear dimension
     integer, parameter :: N=L*L
     integer, parameter :: EMPTY=(-N-1) !?
     integer, dimension(N) :: ptr, order   !Array of pointers, Nearest neighbors
@@ -21,11 +21,11 @@ contains
         implicit none
         integer :: i
 
-        do i=1, N
-        nn(i,1) = mod((i+1),N)
-        nn(i,2) = mod((i+N-1),N)
-        nn(i,3) = mod((i+L),N)
-        nn(i,4) = mod((i+N-L),N)
+        do i=1, N   
+        nn(i,1) = mod(i,N)
+        nn(i,2) = mod((i+N-2),N)
+        nn(i,3) = mod((i+L-1),N)
+        nn(i,4) = mod((i+N-L-1),N)
         if (mod(i,L)==0) then
             nn(i,2) = i+L-1
         endif
@@ -56,11 +56,12 @@ contains
         !We also define a function which performs the “find" operation, returning the label of the root site of a cluster, as well as path compression.
         implicit none
         integer, intent(in) ::  i   !This function takes an integer argument, which is the label of a site, and returns the label of the root site of the cluster to which that site belongs.
-        !integer             ::  res
+        
         if(ptr(i)<0) then   !is negative for all root nodes and contains the label of the site pointed to otherwise.
             res=i   !If ptr[i] < 0, “i” is the root of the cluster, and |ptr[i]| gives the number of sites belonging to the cluster.
         else
-            ptr(i) = findroot(ptr(i))
+            !ptr(i) = findroot(ptr(i))
+            res = findroot(ptr(i))
         endif
         !path compression: In the find part of the algorithm, trees are traversed to find their root sites. If two initial sites lead to the same root, then they belong to the same cluster. In addition, after the traversal is completed, all pointers along the path traversed are changed to point directly the root of their tree.
     end function
@@ -85,7 +86,7 @@ contains
         s2 = nn(s1,j)   !for each occupied neighbour
         if (ptr(s2) /= EMPTY) then
             r2 = findroot(s2)   !The function findroot() is called to find the roots of each of the adjacent sites.
-            if (r2 /= r1) then      !
+            if (r2 /= r1) then      
                 if (ptr(r1)>ptr(r2)) then
                 !5. If the two roots nodes are different, we examine the cluster sizes stored in them, and add a pointer from the root of the smaller cluster to the root of the larger, thereby making the smaller tree a subtree of the larger one. If the two are the same size, we may choose whichever tree we like to be the subtree of the other. We also update the size of the larger cluster by adding the size of the smaller one to it.
                     ptr(r2) = ptr(r2)+ ptr(r1)
