@@ -16,23 +16,45 @@ module constants_mcp
     integer, dimension(N,4) :: nn      !Occupation order
 contains
 
+    integer(8) function dwhere(x,y) result(i)
+        integer, intent(in) :: x,y
+        i=x+(y-1)*L
+    end function
+
     subroutine boundaries()
+        !Next we set up the array nn()() which contains a list of the nearest neighbors of each site. Only this array need be changed in order for the program to work with a lattice of different topology.
+        implicit none
+        integer :: i,j, x, y
+
+        do i=1, N  
+        x=mod(i-1,L)+1
+        y=(i-x)/L+1
+        nn(i,1)=dwhere((mod(i-2+L,L)+1),y) !gauche
+        nn(i,2)=dwhere((mod(i,L)+1),y) !droite
+        nn(i,3)=dwhere(x,mod(y,L)+1)
+        nn(i,4)=dwhere(x,mod(y-2+L,L)+1)
+        !write(*,*), "matrice",i, " " , (nn(i,j),j=1,4)
+        enddo
+
+    end subroutine
+
+    subroutine boundaries2()
         !Next we set up the array nn()() which contains a list of the nearest neighbors of each site. Only this array need be changed in order for the program to work with a lattice of different topology.
         implicit none
         integer :: i,j
 
         do i=1, N  
-            nn(i,1)=mod(i+1,N)  !droite
-            if (mod(i,L)==0) then   !conditions aux limites périodiques
-                nn(i,1) = i-L+1 
-            endif
-            nn(i,2)=mod(i-1+N,N)    !gauche
-            if(mod(i,L)==1) then 
-                nn(i,2)=i+L-1
-            endif
-            nn(i,3)=mod(i+L,N)     !bas
-            nn(i,4)=mod(i-L+N,N)    !haut
-            write(*,*), "matrice",i, " " , (nn(i,j),j=1,4)
+        nn(i,1)=i+1  !droite
+        if (mod(i,L)==0) then   !conditions aux limites périodiques
+            nn(i,1) = i-L+1 
+        endif
+        nn(i,2)=mod(i-1+N,N)    !gauche
+        if(mod(i,L)==1) then 
+            nn(i,2)=i+L-1
+        endif
+        nn(i,3)=mod(i+L,N)     !bas
+        nn(i,4)=mod(i-L+N,N)    !haut
+        write(*,*), "matrice",i, " " , (nn(i,j),j=1,4)
         enddo
     end subroutine
 
@@ -57,7 +79,7 @@ contains
         !We also define a function which performs the “find" operation, returning the label of the root site of a cluster, as well as path compression.
         implicit none
         integer, intent(in) ::  i   !This function takes an integer argument, which is the label of a site, and returns the label of the root site of the cluster to which that site belongs.
-        
+
         if(ptr(i)<0) then   !is negative for all root nodes and contains the label of the site pointed to otherwise.
             res=i   !If ptr[i] < 0, “i” is the root of the cluster, and |ptr[i]| gives the number of sites belonging to the cluster.
         else
@@ -89,7 +111,7 @@ contains
             r2 = findroot(s2)   !The function findroot() is called to find the roots of each of the adjacent sites.
             if (r2 /= r1) then      
                 if (ptr(r1)>ptr(r2)) then
-                !5. If the two roots nodes are different, we examine the cluster sizes stored in them, and add a pointer from the root of the smaller cluster to the root of the larger, thereby making the smaller tree a subtree of the larger one. If the two are the same size, we may choose whichever tree we like to be the subtree of the other. We also update the size of the larger cluster by adding the size of the smaller one to it.
+                    !5. If the two roots nodes are different, we examine the cluster sizes stored in them, and add a pointer from the root of the smaller cluster to the root of the larger, thereby making the smaller tree a subtree of the larger one. If the two are the same size, we may choose whichever tree we like to be the subtree of the other. We also update the size of the larger cluster by adding the size of the smaller one to it.
                     ptr(r2) = ptr(r2)+ ptr(r1)
                     ptr(r1) = r2
                     r1 = r2
