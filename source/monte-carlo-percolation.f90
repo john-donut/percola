@@ -9,7 +9,7 @@
 
 module constants_mcp
     implicit none
-    integer, parameter :: L=10   !Linear dimension
+    integer, parameter :: L=1500   !Linear dimension
     integer, parameter :: N=L*L
     integer, parameter :: EMPTY=(-N-1) !?
     integer, dimension(N) :: ptr, order   !Array of pointers, Nearest neighbors
@@ -36,26 +36,6 @@ contains
         !write(*,*), "matrice",i, " " , (nn(i,j),j=1,4)
         enddo
 
-    end subroutine
-
-    subroutine boundaries2()
-        !Next we set up the array nn()() which contains a list of the nearest neighbors of each site. Only this array need be changed in order for the program to work with a lattice of different topology.
-        implicit none
-        integer :: i,j
-
-        do i=1, N  
-        nn(i,1)=i+1  !droite
-        if (mod(i,L)==0) then   !conditions aux limites périodiques
-            nn(i,1) = i-L+1 
-        endif
-        nn(i,2)=mod(i-1+N,N)    !gauche
-        if(mod(i,L)==1) then 
-            nn(i,2)=i+L-1
-        endif
-        nn(i,3)=mod(i+L,N)     !bas
-        nn(i,4)=mod(i-L+N,N)    !haut
-        write(*,*), "matrice",i, " " , (nn(i,j),j=1,4)
-        enddo
     end subroutine
 
     subroutine permutation
@@ -124,9 +104,11 @@ contains
                 endif
             endif
         endif
-        write(*,*), i, i, i+1, big
+        write(10,*), i, i, i+1, big
         enddo
         enddo
+
+
     end subroutine
 
 end module constants_mcp
@@ -134,10 +116,14 @@ end module constants_mcp
 program main
     use constants_mcp
     use random_functions
+    character(len=20) :: filename
     !allocate somewhere for dynamical arrays
     call random_seed() !to init the seed for random number generation
 
+    write (filename, "('clusters',I4.4,'.dat')") L
+    open (unit=10,file=filename,status = 'new')
     call boundaries
     call permutation
     call percolate
-end program
+    close  (10)
+end program main
