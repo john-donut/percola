@@ -5,6 +5,35 @@ module random_functions
 
 contains
 
+    real(8) function mean_array(A,N) result(M)
+        implicit none
+        integer, intent(in) ::  N
+        real(8), dimension(N), intent(in)   ::  A
+        M=sum(A)/N
+    end function mean_array
+
+    real(8) function variance_array(A,N) result(V)
+        implicit none
+        integer, intent(in) ::  N
+        real(8), dimension(N), intent(in)   ::  A
+        integer :: i
+        real(8) :: T=0, M
+        M=mean_array(A,N)
+
+        do i=1,N
+        T=T+(A(i)-M)**2
+        enddo
+        V=sqrt(T/(N-1))
+    end function variance_array
+
+    real(8) function correlation_length(g,N) result(Xi)
+        implicit none
+        integer, intent(in) :: N
+        real(8), dimension(N), intent(in)   :: g
+        !"We define the correlation or the connectivity length by $\xi$ as some average distance of two sites belonging to the same
+        !cluster: $\xi^2=\dfrac{\sum _r r^2 g(r)}{\sum _r g(r)}$ "
+    end function        
+
     real(8) function drand() result(r)
         !   Here the function drand() generates a random double precision floating point number between 0 and 1.
         implicit none
@@ -32,8 +61,8 @@ contains
             call system_clock(t)
             if(t == 0) then
                 call date_and_time(values=dt)    
-                t=((dt(1)-1970)* 365_int64*24*60*60*1000+dt(2)* 31_int64*24*60*60*1000 +dt(3)* 24_int64*60*60*1000 +dt(5)* 60*60*1000&
-                    +dt(6)* 60*1000 +dt(7)* 1000 +dt(8))
+                t=((dt(1)-1970)* 365_int64*24*60*60*1000+dt(2)* 31_int64*24*60*60*1000 +dt(3)* 24_int64*60*60*1000 &
+                    +dt(5)* 60*60*1000+dt(6)* 60*1000 +dt(7)* 1000 +dt(8))
             endif
             pid = getpid()
             t=ieor(t,int(pid,kind(t)))
