@@ -9,7 +9,7 @@
 
 module constants_mcp
     implicit none
-    integer, parameter :: L=500   !Linear dimension
+    integer, parameter :: L=1500   !Linear dimension
     integer, parameter :: N=L*L
     integer, parameter :: EMPTY=(-N-1) !?
     integer, dimension(N) :: ptr, order   !Array of pointers, Nearest neighbors
@@ -77,19 +77,22 @@ contains
         !3. Each bond added joins together two sites. We follow pointers from each of these sites separately until we reach the root sites of the clusters to which they belong. Then we go back along the paths we followed through each tree and adjust all pointers along those paths to point directly to the corresponding root sites.
         !4. If the two root sites are the same site, we need do nothing further.
         !5. If the two root nodes are different, we examine the cluster sizes stored in them, and add a pointer from the root of the smaller cluster to the root of the larger, thereby making the smaller tree a subtree of the larger one. If the two are the same size, we may choose whichever tree we like to be the subtree of the other. We also update the size of the larger cluster by adding the size of the smaller one to it.
-        integer :: i,j,s1,s2,r1,r2,big=0
+        integer :: i,j,s1,s2,r1,r2,nb_fusion,nb_cluster=N,big=0
         do i=1, N
         ptr(i) = EMPTY
         enddo
         do i=1, N   !Sites are occupied in the order specified by the array order[]
+        nb_fusion = 0
         r1 = order(i)
         s1 = r1
         ptr(s1) = -1    !1. Initially all sites are clusters in their own right. Each is its own root site, and contains a record of its own size, which is 1.
         do j=1, 4
         s2 = nn(s1,j)   !for each occupied neighbour
         if (ptr(s2) /= EMPTY) then
+            
             r2 = findroot(s2)   !The function findroot() is called to find the roots of each of the adjacent sites.
-            if (r2 /= r1) then      
+            if (r2 /= r1) then
+                nb_fusion = nb_fusion+1      
                 if (ptr(r1)>ptr(r2)) then
                     !5. If the two roots nodes are different, we examine the cluster sizes stored in them, and add a pointer from the root of the smaller cluster to the root of the larger, thereby making the smaller tree a subtree of the larger one. If the two are the same size, we may choose whichever tree we like to be the subtree of the other. We also update the size of the larger cluster by adding the size of the smaller one to it.
                     ptr(r2) = ptr(r2)+ ptr(r1)
@@ -104,12 +107,24 @@ contains
                 endif
             endif
         endif
-        write(10,*), i, i, i+1, big
+        !write(10,*), i, i, i+1, big
         enddo
+        call susceptibilite(i, nb_fusion, nb_cluster)
         enddo
 
 
     end subroutine
+
+    subroutine susceptibilite(i, nb_fusion, nb_cluster)
+
+    integer :: i, nb_fusion, nb_cluster
+    real(8) :: moyenne_microcanonique
+
+        nb_cluster = nb_cluster-nb_fusion
+        moyenne_microcanonique = 1.*N/nb_cluster
+        write(11,*) i, moyenne_microcanonique
+
+    end subroutine susceptibilite
 
 end module constants_mcp
 
@@ -121,9 +136,11 @@ program main
     call random_seed() !to init the seed for random number generation
 
     write (filename, "('clusters',I4.4,'.dat')") L
-    open (unit=10,file=filename,status = 'new')
+    open (unit=10,file=filename)
+    open(unit = 11, file = 'susceptibilite.res')
     call boundaries
     call permutation
     call percolate
     close  (10)
+    close(11)
 end program main
