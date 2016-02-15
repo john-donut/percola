@@ -9,7 +9,7 @@
 
 module constants_mcp
     implicit none
-    integer, parameter :: L=1500   !Linear dimension
+    integer, parameter :: L=500   !Linear dimension
     integer, parameter :: N=L*L
     integer, parameter :: EMPTY=(-N-1) !?
     integer, dimension(N) :: ptr, order   !Array of pointers, Nearest neighbors
