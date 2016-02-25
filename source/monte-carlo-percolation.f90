@@ -10,7 +10,7 @@
 module constants_mcp
     implicit none
     integer, parameter :: L=1500   !Linear dimension
-    integer, parameter :: nrepet=100 !nombre de répétition
+    integer, parameter :: nrepet=5 !nombre de répétition
     integer, parameter :: N=L*L
     real, dimension(L**2) :: perc_prob_n ! probability that there exists a percolating cluster as function of n=number of occupied sites
     integer, parameter :: EMPTY=(-N-1) !?
@@ -83,6 +83,7 @@ contains
         integer :: i,j,k,s1,s2,r1,r2,nb_fusion,nb_cluster=N,big=0
 	integer	:: crx,cry
 	integer, dimension(L**2,4) :: touch_border ! array used to determine if a cluster is crossing the system along one of the two directions
+    touch_border=0
 	do i=1,L
 	touch_border((i-1)*L+1,1)=1	! sites on right border
 	touch_border(i*L,2)=1	! sites on left border
@@ -93,13 +94,13 @@ contains
 	cry=0
         do i=1, N
         ptr(i) = EMPTY
+        pp(i)=0
         enddo
-        do i=1, N   !Sites are occupied in the order specified by the array order[]
+        do i=1, N-1   !Sites are occupied in the order specified by the array order[]
         nb_fusion = 0
         r1 = order(i)
         s1 = r1
         ptr(s1) = -1    !1. Initially all sites are clusters in their own right. Each is its own root site, and contains a record of its own size, which is 1.
-        pp(i)=0
 	do j=1, 4
         s2 = nn(s1,j)   !for each occupied neighbour
         if (ptr(s2) /= EMPTY) then
@@ -142,7 +143,6 @@ contains
 	!call susceptibilite(i, nb_fusion, nb_cluster)
 enddo
 pp(L**2)=1
-perc_prob_n=perc_prob_n+pp
 end subroutine
 
     subroutine susceptibilite(i, nb_fusion, nb_cluster)
@@ -165,9 +165,7 @@ integer :: m
 character(len=20) :: filename
 !allocate somewhere for dynamical arrays
 call random_seed() !to init the seed for random number generation
-do m=1, N
-	perc_prob_n(m)=0
-enddo
+perc_prob_n=0.0
 write (filename, "('clusters',I4.4,'.dat')") L
 open (unit=10,file=filename)
 open(unit = 11, file = 'susceptibilite.res')
@@ -176,9 +174,10 @@ do m=1,nrepet
 call boundaries
 call permutation
 call percolate
+perc_prob_n=perc_prob_n+pp
 enddo
-do m=1, 150
-	write(14,*) m,perc_prob_n(m)/nrepet.
+do m=1, N
+	write(14,*) m,perc_prob_n(m)/nrepet
 enddo
 close(14)
 close (10)
