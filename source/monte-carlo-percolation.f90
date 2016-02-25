@@ -96,12 +96,16 @@ contains
         !4. If the two root sites are the same site, we need do nothing further.
         !5. If the two root nodes are different, we examine the cluster sizes stored in them, and add a pointer from the root of the smaller cluster to the root of the larger, thereby making the smaller tree a subtree of the larger one. If the two are the same size, we may choose whichever tree we like to be the subtree of the other. We also update the size of the larger cluster by adding the size of the smaller one to it.
         integer :: i,j,k,s1,s2,r1,r2,nb_fusion,nb_cluster=N,big=0
-        integer	:: crx=0,cry=0
-        integer, dimension(L**2)		:: psites	! psites(n) is the size of the percolating cluster for the configuration with n occupied sites 
+        integer	:: crx,cry
+        integer, dimension(L**2) :: psites	! psites(n) is the size of the percolating cluster for the configuration with n occupied sites 
         integer, dimension(N) :: ns
-        psites=0.0
-        ptr=empty
-		pp=0.0
+        crx=0
+        cry=0
+        do i=1, N
+        psites(i)=0
+        ptr(i)=empty
+		pp(i)=0
+        enddo
         call define_borders(touch_border)
     
         do i=1, N-1   !Sites are occupied in the order specified by the array order[]
@@ -197,7 +201,7 @@ program main
     call percolate
     enddo moyenne_observable
     p_infinite_n=p_infinite_n/nrepet
-    perc_prob_n(m)=perc_prob_n(m)/nrepet
+    perc_prob_n=perc_prob_n/nrepet
     do m=1, N
     write(14,*) m,perc_prob_n(m),p_infinite_n(m)
     enddo
