@@ -83,6 +83,7 @@ contains
         integer :: i,j,k,s1,s2,r1,r2,nb_fusion,nb_cluster=N,big=0
         integer	:: crx,cry
         integer, dimension(L**2,4) :: touch_border ! array used to determine if a cluster is crossing the system along one of the two directions
+        integer, dimension(N) :: ns
         do i=1,L
         touch_border((i-1)*L+1,1)=1 ! sites on right border
         touch_border(i*L,2)=1   ! sites on left border
@@ -96,6 +97,7 @@ contains
         enddo
         do i=1, N   !Sites are occupied in the order specified by the array order[]
         nb_fusion = 0
+        ns(1) = ns(1)+1
         r1 = order(i)
         s1 = r1
         ptr(s1) = -1    !1. Initially all sites are clusters in their own right. Each is its own root site, and contains a record of its own size, which is 1.
@@ -112,10 +114,16 @@ contains
                     do k=1, 4
                     touch_border(r2,k)=ior(touch_border(r1,k),touch_border(r2,k))
                     end do
+                    ns(abs(ptr(r1))) = ns(abs(ptr(r1)))-1
+                    ns(abs(ptr(r2))) = ns(abs(ptr(r2)))-1
+                    ns(abs(ptr(r1)+ptr(r2))) = ns(abs(ptr(r1)+ptr(r2)))+1
                     ptr(r2) = ptr(r2)+ ptr(r1)
                     ptr(r1) = r2
                     r1 = r2
                 else        !4. If the two root sites are the same site, we need do nothing further.
+                    ns(abs(ptr(r1))) = ns(abs(ptr(r1)))-1
+                    ns(abs(ptr(r2))) = ns(abs(ptr(r2)))-1
+                    ns(abs(ptr(r1)+ptr(r2))) = ns(abs(ptr(r1)+ptr(r2)))+1
                     ptr(r1) = ptr(r1)+ ptr(r2)
                     do k=1,4
                     touch_border(r1,k)=ior(touch_border(r1,k),touch_border(r2,k))
@@ -174,9 +182,9 @@ program main
     call boundaries
     call permutation
     call percolate
-    enddo
+    enddo moyenne_observable
     do m=1, N
-    write(14,*) m,perc_prob_n(m)/nrepet.
+    write(14,*) m,perc_prob_n(m)/nrepet
     enddo
     close(14)
     close(10)
