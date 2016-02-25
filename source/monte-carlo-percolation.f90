@@ -83,7 +83,10 @@ contains
         integer :: i,j,k,s1,s2,r1,r2,nb_fusion,nb_cluster=N,big=0
         integer	:: crx,cry
         integer, dimension(L**2,4) :: touch_border ! array used to determine if a cluster is crossing the system along one of the two directions
+<<<<<<< HEAD
         integer, dimension(N) :: ns
+=======
+>>>>>>> e73fb70a708992783e54d7344ffca4bc28931f17
         do i=1,L
         touch_border((i-1)*L+1,1)=1 ! sites on right border
         touch_border(i*L,2)=1   ! sites on left border
@@ -114,9 +117,12 @@ contains
                     do k=1, 4
                     touch_border(r2,k)=ior(touch_border(r1,k),touch_border(r2,k))
                     end do
+<<<<<<< HEAD
                     ns(abs(ptr(r1))) = ns(abs(ptr(r1)))-1
                     ns(abs(ptr(r2))) = ns(abs(ptr(r2)))-1
                     ns(abs(ptr(r1)+ptr(r2))) = ns(abs(ptr(r1)+ptr(r2)))+1
+=======
+>>>>>>> e73fb70a708992783e54d7344ffca4bc28931f17
                     ptr(r2) = ptr(r2)+ ptr(r1)
                     ptr(r1) = r2
                     r1 = r2
@@ -182,11 +188,23 @@ program main
     call boundaries
     call permutation
     call percolate
+<<<<<<< HEAD
     enddo moyenne_observable
     do m=1, N
     write(14,*) m,perc_prob_n(m)/nrepet
+=======
+    enddo
+    do m=1, N
+    write(14,*) m,perc_prob_n(m)/nrepet.
+>>>>>>> e73fb70a708992783e54d7344ffca4bc28931f17
     enddo
     close(14)
     close(10)
     close(11)
 end program main
+
+    Status API Training Shop Blog About Pricing 
+
+    © 2016 GitHub, Inc. Terms Privacy Security Contact Help 
+
+
