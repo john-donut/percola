@@ -10,7 +10,7 @@
 module constants_mcp
     implicit none
     integer, parameter :: L=1500   !Linear dimension
-    integer, parameter :: nrepet=5 !nombre de répétition
+    integer, parameter :: nrepet=100 !nombre de répétition
     integer, parameter :: N=L*L
     real, dimension(L**2) :: perc_prob_n=0 ! probability that there exists a percolating cluster as function of n=number of occupied sites
     integer, parameter :: EMPTY=(-N-1) !?
@@ -81,19 +81,6 @@ contains
         !4. If the two root sites are the same site, we need do nothing further.
         !5. If the two root nodes are different, we examine the cluster sizes stored in them, and add a pointer from the root of the smaller cluster to the root of the larger, thereby making the smaller tree a subtree of the larger one. If the two are the same size, we may choose whichever tree we like to be the subtree of the other. We also update the size of the larger cluster by adding the size of the smaller one to it.
         integer :: i,j,k,s1,s2,r1,r2,nb_fusion,nb_cluster=N,big=0
-<<<<<<< HEAD
-	integer	:: crx,cry
-	integer, dimension(L**2,4) :: touch_border ! array used to determine if a cluster is crossing the system along one of the two directions
-    touch_border=0
-	do i=1,L
-	touch_border((i-1)*L+1,1)=1	! sites on right border
-	touch_border(i*L,2)=1	! sites on left border
-	touch_border(i,3)=1	! sites on top border
-	touch_border(L*(L-1)+i,4)=1	! sites on bottom border
-	end do
-	crx=0
-	cry=0
-=======
         integer	:: crx,cry
         integer, dimension(L**2,4) :: touch_border ! array used to determine if a cluster is crossing the system along one of the two directions
         do i=1,L
@@ -104,22 +91,16 @@ contains
         end do
         crx=0
         cry=0
->>>>>>> 9cca4e9620b11e10b81ed90f88c6068bb8593ac7
         do i=1, N
         ptr(i) = EMPTY
-        pp(i)=0
         enddo
-        do i=1, N-1   !Sites are occupied in the order specified by the array order[]
+        do i=1, N   !Sites are occupied in the order specified by the array order[]
         nb_fusion = 0
         r1 = order(i)
         s1 = r1
         ptr(s1) = -1    !1. Initially all sites are clusters in their own right. Each is its own root site, and contains a record of its own size, which is 1.
-<<<<<<< HEAD
-	do j=1, 4
-=======
         pp(i)=0
         do j=1, 4
->>>>>>> 9cca4e9620b11e10b81ed90f88c6068bb8593ac7
         s2 = nn(s1,j)   !for each occupied neighbour
         if (ptr(s2) /= EMPTY) then
 
@@ -148,22 +129,6 @@ contains
         endif
         !write(10,*), i, i, i+1, big
         enddo
-<<<<<<< HEAD
-		if(touch_border(r1,1)+touch_border(r1,2).gt.1) then
-			crx=1	! the cluster is crossing the system along direction x
-		end if
-		if(touch_border(r1,3)+touch_border(r1,4).gt.1) then
-			cry=1	! the cluster is crossing the system along direction y
-		end if
-		if(crx+cry.ge.1) then
-			pp(i)=1	
-		end if
-	pp(i+1)=pp(i)
-	!call susceptibilite(i, nb_fusion, nb_cluster)
-enddo
-pp(L**2)=1
-end subroutine
-=======
         if(touch_border(r1,1)+touch_border(r1,2).gt.1) then
             crx=1   ! the cluster is crossing the system along direction x
         end if
@@ -179,7 +144,6 @@ end subroutine
         pp(L**2)=1
         perc_prob_n=perc_prob_n+pp
     end subroutine
->>>>>>> 9cca4e9620b11e10b81ed90f88c6068bb8593ac7
 
     subroutine susceptibilite(i, nb_fusion, nb_cluster)
 
@@ -195,31 +159,6 @@ end subroutine
 end module constants_mcp
 
 program main
-<<<<<<< HEAD
-use constants_mcp
-use random_functions
-integer :: m
-character(len=20) :: filename
-!allocate somewhere for dynamical arrays
-call random_seed() !to init the seed for random number generation
-perc_prob_n=0.0
-write (filename, "('clusters',I4.4,'.dat')") L
-open (unit=10,file=filename)
-open(unit = 11, file = 'susceptibilite.res')
-open(unit = 14, file = 'percolation.res')
-do m=1,nrepet
-call boundaries
-call permutation
-call percolate
-perc_prob_n=perc_prob_n+pp
-enddo
-do m=1, N
-	write(14,*) m,perc_prob_n(m)/nrepet
-enddo
-close(14)
-close (10)
-close(11)
-=======
     use constants_mcp
     use random_functions
     integer :: m
@@ -242,5 +181,10 @@ close(11)
     close(14)
     close(10)
     close(11)
->>>>>>> 9cca4e9620b11e10b81ed90f88c6068bb8593ac7
 end program main
+
+    Status API Training Shop Blog About Pricing 
+
+    © 2016 GitHub, Inc. Terms Privacy Security Contact Help 
+
+
