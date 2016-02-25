@@ -34,39 +34,47 @@ contains
         !cluster: $\xi^2=\dfrac{\sum _r r^2 g(r)}{\sum _r g(r)}$ "
     end function       
 
-    real(8) function gammln(xx) result(res)
-        !the functions gammln, factln, binomial are inspired by numerical recipies hosted at
-        !http://www.it.uom.gr/teaching/linearalgebra/NumericalRecipiesInC/c6-1.pdf
+    real(8) function gammln(x) result(res)
         implicit none
-        !Returns the valueln[Γ(xx)]forxx>0.
-        !Internal arithmetic will be done in double precision, a nicety that you can omit if five-figure accuracy is good enough.
-        real(8) :: x,y,tmp,ser=1.000000000190015
-        real(8), dimension(6)   :: cof
-        real(8), intent(in) :: xx
-        integer ::  j
-        cof=(/76.18009172947146,-86.50532032941677,24.01409824083091,-1.231739572450155,0.1208650973866179e-2,-0.5395239384953e-5/)
-        y=xx; x=xx; tmp=x+5.5
-        tmp = tmp- (x+0.5)*log(tmp)
-        do j=1,6
-        ser = ser + cof(j)/(y+1)
+        real(8), intent(in) :: x
+        res=log(gamma(x))
+        end function
+
+    FUNCTION fact(n)
+        integer n,i
+        real(8) fact
+        fact=1
+        do i=1,n
+        fact=fact*i
         enddo
-        res=-tmp+log(2.5066282746310005*ser/x)
-    end function
+        end function
 
     real(8) function factln(n) result(res)
         implicit none
         integer, intent(in) :: n
+        integer :: i
+        real(8)::temp
+        !temp = PRODUCT((/(i, i=1,n)/))
+        res=log(fact(n))
+    end function factln
+    
+    real(8) function factln2(n) result(res) !bug ici
+        !the functions factln and binomial are inspired by numerical recipies hosted at
+        !http://www.it.uom.gr/teaching/linearalgebra/NumericalRecipiesInC/c6-1.pdf
         !Returns    $\ln(n!)$.
-        !gammln(xx);
+        implicit none
+        integer, intent(in) :: n
         real(8), dimension(101) :: a=0        !A static array is automatically initialized to zero.
         if (n < 0) then 
             write(*,*) "Negative factorial in routine factln"
-        else if (n <= 1) then 
+        else if (n==0 .or. n==1) then 
             res=0.0
         !else if (n <= 100) then return a[n] ? a[n] : (a[n]=gammln(n+1.0));    !In range of table.
         else if (n <= 100) then 
             if(a(n)==0) then
                 res=a(n)
+            else
+                res=gammln(n+1.0_8)
             endif
         else
                 res=gammln(n+1.0_8);  !Out of range of table.
@@ -77,7 +85,6 @@ contains
         implicit none
         integer, intent(in) :: n,k
         !Returns the binomial coefficient $\binom{n,k}$  as a floating-point number.
-        !float factln(int n);
         res=floor(0.5+exp(factln(n)-factln(k)-factln(n-k)));
         !The floor function cleans up roundoff error for smaller values of n and k
     end function
@@ -138,6 +145,12 @@ contains
 
 end module random_functions
 
-!program test
-!    use random_functions
-!end program test
+program test
+    use random_functions
+    write(*,*) gammln(1.0_8), 0 !ln(0!))=0
+    write(*,*) gammln(2.0_8), 0 !ln(1!)=0
+    write(*,*) gammln(3._8), 1.4 !ln(2)=1.4
+    write(*,*) gammln(4._8), 0 !ln(6)=1.4
+    write(*,*) factln(10)  !ln(6)=1.4
+    write(*,*) binomial(5,3)
+end program test
