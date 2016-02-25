@@ -145,12 +145,12 @@ contains
 
 end module random_functions
 
-program test
-    use random_functions
-    write(*,*) gammln(1.0_8), 0 !ln(0!))=0
-    write(*,*) gammln(2.0_8), 0 !ln(1!)=0
-    write(*,*) gammln(3._8), 1.4 !ln(2)=1.4
-    write(*,*) gammln(4._8), 0 !ln(6)=1.4
-    write(*,*) factln(10)  !ln(6)=1.4
-    write(*,*) binomial(5,3)
-end program test
+!program test
+!    use random_functions
+!    write(*,*) gammln(1.0_8), 0 !ln(0!))=0
+!    write(*,*) gammln(2.0_8), 0 !ln(1!)=0
+!    write(*,*) gammln(3._8), 1.4 !ln(2)=1.4
+!    write(*,*) gammln(4._8), 0 !ln(6)=1.4
+!    write(*,*) factln(10)  !ln(6)=1.4
+!    write(*,*) binomial(5,3)
+!end program test
