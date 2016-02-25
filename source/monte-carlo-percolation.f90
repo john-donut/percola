@@ -12,11 +12,12 @@ module constants_mcp
     integer, parameter :: L=1500   !Linear dimension
     integer, parameter :: nrepet=100 !nombre de répétition
     integer, parameter :: N=L*L
-    real, dimension(L**2) :: perc_prob_n=0 ! probability that there exists a percolating cluster as function of n=number of occupied sites
+    real, dimension(L**2) :: perc_prob_n=0.0 ! probability that there exists a percolating cluster as function of n=number of occupied sites
+    real, dimension(L**2)		   :: p_infinite_n=0.0	! probability that a site belongs to the percolating cluster (order parameter) as function of n=number of occupied sites
     integer, parameter :: EMPTY=(-N-1)
     integer, dimension(N) :: ptr, order   !Array of pointers, Nearest neighbors
     integer, dimension(N,4) :: nn      !Occupation order
-    integer, dimension(L**2) :: pp 
+    integer, dimension(L**2)  :: pp
     integer, dimension(L**2,4) :: touch_border ! array used to determine if a cluster is crossing the system along one of the two directions
 contains
 
@@ -96,10 +97,11 @@ contains
         !5. If the two root nodes are different, we examine the cluster sizes stored in them, and add a pointer from the root of the smaller cluster to the root of the larger, thereby making the smaller tree a subtree of the larger one. If the two are the same size, we may choose whichever tree we like to be the subtree of the other. We also update the size of the larger cluster by adding the size of the smaller one to it.
         integer :: i,j,k,s1,s2,r1,r2,nb_fusion,nb_cluster=N,big=0
         integer	:: crx=0,cry=0
+        integer, dimension(L**2)		:: psites	! psites(n) is the size of the percolating cluster for the configuration with n occupied sites 
         integer, dimension(N) :: ns
-
+        psites=0.0
         ptr=empty
-		pp=0
+		pp=0.0
         call define_borders(touch_border)
     
         do i=1, N-1   !Sites are occupied in the order specified by the array order[]
@@ -152,12 +154,16 @@ contains
         end if
         if(crx+cry.ge.1) then
             pp(i)=1
+            psites(i)=max(psites(i),-1*ptr(r1))	! we take the largest percolating cluster if there are more than one
         end if
         pp(i+1)=pp(i)
+        psites(i+1)=psites(i)
         !call susceptibilite(i, nb_fusion, nb_cluster)
         enddo
         pp(L**2)=1
+        psites(L**2)=L**2
         perc_prob_n=perc_prob_n+pp
+        p_infinite_n=p_infinite_n+1.0*psites/L**2
     end subroutine
 
     subroutine susceptibilite(i, nb_fusion, nb_cluster)
@@ -190,9 +196,10 @@ program main
     call permutation
     call percolate
     enddo moyenne_observable
-    
+    p_infinite_n=p_infinite_n/nrepet
+    perc_prob_n(m)=perc_prob_n(m)/nrepet
     do m=1, N
-    write(14,*) m,perc_prob_n(m)/nrepet
+    write(14,*) m,perc_prob_n(m),p_infinite_n(m)
     enddo
 
     close(14)
