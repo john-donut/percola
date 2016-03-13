@@ -11,7 +11,15 @@
 
 module constants_mcp
     implicit none
-    integer, parameter :: L=20	  !Linear dimension
+    integer, parameter 		   :: dp=100		! number of different values of p in interval (0,1) that are considered
+	!	other variables
+    real(8)		   		   :: delta_p		! distance between consecutive values of p, we choose M equidistant points in the interval (0,1)
+  !	n-dependent averages
+    real(8), dimension(dp)		   :: perc_prob_p	! probability that there exists a percolating cluster as function of p
+    real(8), dimension(dp)		   :: p_infinite_p	! probability that a site belongs to the percolating cluster as function of p
+    real(8), dimension(dp)		   :: lc_p		! size of the largest non-percolating cluster as function of p
+    real(8), dimension(dp)		   :: susc_p		! susceptibility as function of p
+    integer, parameter :: L=50	  !Linear dimension
     integer, parameter :: nrepet=100 !nombre de répétition
     integer, parameter :: N=L*L
     real, dimension(L**2) :: perc_prob_n=0.0 ! probability that there exists a percolating cluster as function of n=number of occupied sites
@@ -47,6 +55,160 @@ contains
         enddo
 
     end subroutine
+
+subroutine convolution
+implicit none
+	real(8)		          :: p
+	real(8)			  :: norm
+!	integer		   	  :: realization,i,n
+	integer		   	  :: i,n
+!	integer, dimension(L**2)  :: pp,perc_sites,lc
+	real(8), dimension(:), allocatable  :: coeff
+	real(8), dimension(:), allocatable :: perc_prob_n1	! probability that there exists a percolating cluster as function of n=number of occupied sites
+	real(8), dimension(:), allocatable :: p_infinite_n1	! probability that a site belongs to the percolating cluster (order parameter) as function of n
+	real(8), dimension(:), allocatable :: lc_n1		! size of the largest non-percolating cluster as function of n
+	real(8), dimension(:), allocatable :: susc_n1		! susceptibility as function of n
+!	p-dependent averages
+
+	delta_p=1.0/(dp+1)	! with this choise, the values of p are p_i = i * delta_p , i=1,2,3,..., M
+				! you can however decide to choose the values of p differently, not forced to choose them uniformly in (0,1)
+
+	perc_prob_p=0.0
+	p_infinite_p=0.0
+	lc_p=0.0
+	susc_p=0.0
+
+	allocate(perc_prob_n1(L**2))	
+	allocate(p_infinite_n1(L**2))
+	allocate(lc_n1(L**2))
+	allocate(susc_n1(L**2))
+	allocate(coeff(L**2))
+
+	open(111,file='susc.res',status='old',action='read')
+
+
+!		Read values from input file
+		do i=1,L**2
+			read(111,*) n,perc_prob_n1(i),p_infinite_n1(i),lc_n1(i),susc_n1(i)
+		end do
+
+		close(111)
+!		Now compute the p-dependent averages Q(p) by convolving the sequence Q(n) with the binomial distribution
+		do i=1,dp
+			p=i*delta_p
+!			compute the coefficients of the summation
+!			here we use the method suggested by Newman and Ziff in their paper to compute the binomial distribution in a faster way
+!			first we compute the non-normalized binomial coefficients, then we compute the normalization constant
+			do n=1,L**2
+!				coeff(n)=bindist(L**2,n,p) ! the function bindist returns the values of the (non-normalized) binomial distribution probabilities
+				coeff(n)=bindist_norecu(L**2,n,p) ! the function bindist returns the values of the (non-normalized) binomial distribution probabilities
+			end do
+
+			do n=1,L**2
+				perc_prob_p(i)=perc_prob_p(i)+coeff(n)*perc_prob_n1(n)
+				p_infinite_p(i)=p_infinite_p(i)+coeff(n)*p_infinite_n1(n)
+				lc_p(i)=lc_p(i)+coeff(n)*lc_n1(n)
+				susc_p(i)=susc_p(i)+coeff(n)*susc_n1(n)
+			end do
+
+!			compute normalization factor for the probabilities
+			norm=0.0
+			do n=1,L**2
+				norm=norm+coeff(n)
+			end do
+
+!			divide the averages by the correct normalization factor
+			
+			perc_prob_p(i)=perc_prob_p(i)/norm
+			p_infinite_p(i)=p_infinite_p(i)/norm
+			lc_p(i)=lc_p(i)/norm
+			susc_p(i)=susc_p(i)/norm
+			susc_p(i)=susc_p(i)/L**2/(p-p_infinite_p(i))
+		end do
+
+
+!		write results into file
+		open(222,file='out.dat',status='replace',action='write')
+
+		write(222,*) "# Results for site percolation on square lattice"
+		write(222,*) "# L= ", L
+		write(222,*) "# number of p points = ", dp
+		write(222,*)
+		write(222,'(x,f9.6,xx,f9.6,xx,f9.6,xx,f14.3,xx,f14.3)') 0.0,0.0,0.0,0.0,0.0
+		do i=1,dp
+			write(222,'(x,f9.6,xx,f9.6,xx,f9.6,xx,f14.3,xx,f14.3)') i*delta_p,perc_prob_p(i),p_infinite_p(i),lc_p(i),susc_p(i)
+		end do
+		write(222,'(x,f9.6,xx,f9.6,xx,f9.6,xx,f14.3,xx,f14.3)') 1.0,1.0,1.0,0.0,0.0
+		close(222)
+
+	print*, 'done!'
+end subroutine
+
+! bindist() is the function that returns the values of non-normalized binomial distribution probabilities
+! the method used to compute them is the one suggested by Newman and Ziff in their paper
+! which uses a recursive relation
+!
+! inputs: n,k,p
+! output: the (non-normalized) k-th coefficient B(n,k,p) of binomial distribution of parameters n and p
+!
+! the way it works:
+!  - compute k0 = the value of k for which B(n,k,p) is maximal ( k0 is the integer between p*(n+1)-1 and p*(n+1) )
+!  - set the value of B(n,k0,p) to 1	(this is why we need later to properly normalize the coefficients)
+!  - check if k is greater or smaller than k0
+!  - if k < k0 THEN
+!	- compute B(n,k,p) from B(n,k+1,p)
+!    ELSE
+!	- compute B(n,k,p) from B(n,k-1,p)
+real(8) recursive function bindist(n,k,p)  result(b)
+  implicit none
+	integer, intent(in) :: n
+	integer, intent(in) :: k
+	real(8), intent(in) :: p
+	integer	            :: k0
+
+	k0=floor(p*(n+1))
+
+	if(k.eq.k0) then
+		b=1.0
+	else
+		if(k.lt.k0) then
+			b=bindist(n,k+1,p)*(k+1)/(n-k)*(1-p)/p
+		else
+			b=bindist(n,k-1,p)*(n-k+1)/k*p/(1-p)
+		end if
+	end if
+	return
+end function bindist
+
+
+function bindist_norecu(n,k,p) result(b)
+  implicit none
+	integer, intent(in) :: n
+	integer, intent(in) :: k
+	real(8), intent(in) :: p
+	real(8)		    :: b
+
+	integer	            :: k0
+	integer		    :: j
+
+	k0=floor(p*(n+1))
+	b=1.0
+
+	j=k	
+	if(k.lt.k0) then
+		do while(j.lt.k0)
+			b=b*(j+1)/(n-j)*(1-p)/p
+			j=j+1
+		end do
+	else
+		do while(j.gt.k0)
+			b=b*(n-j+1)/j*p/(1-p)
+			j=j-1
+		end do
+	end if
+
+	return
+end function bindist_norecu
 
     subroutine permutation
         !Now we generate the random order in which the sites will be occupied, by randomly permuting the integers from 0 to N − 1:
@@ -334,4 +496,5 @@ program main
     enddo
     close(14)
     print*, 'done!'
+    call convolution
 end program main
