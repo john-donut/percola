@@ -11,7 +11,7 @@
 
 module constants_mcp
     implicit none
-    integer, parameter :: L=50	  !Linear dimension
+    integer, parameter :: L=20	  !Linear dimension
     integer, parameter :: nrepet=100 !nombre de répétition
     integer, parameter :: N=L*L
     real, dimension(L**2) :: perc_prob_n=0.0 ! probability that there exists a percolating cluster as function of n=number of occupied sites
@@ -108,17 +108,17 @@ end function compute_disp
         !3. Each bond added joins together two sites. We follow pointers from each of these sites separately until we reach the root sites of the clusters to which they belong. Then we go back along the paths we followed through each tree and adjust all pointers along those paths to point directly to the corresponding root sites.
         !4. If the two root sites are the same site, we need do nothing further.
         !5. If the two root nodes are different, we examine the cluster sizes stored in them, and add a pointer from the root of the smaller cluster to the root of the larger, thereby making the smaller tree a subtree of the larger one. If the two are the same size, we may choose whichever tree we like to be the subtree of the other. We also update the size of ethe larger cluster by adding the size of the smaller one to it.
-        integer :: i,j,k,s1,s2,r1,r2,big=0
+        integer :: i,j,k,a,z,s,s1,s2,r1,r2,big=0
 !	integer :: wrapping
-	integer :: rmin,r_perc,rlc		! rlc is the root of the largest non-percolating cluster, r_perc the root of the percolating cluster
-	integer :: dx,dy,s,r
+	integer :: rmin,r_perc,rlc,perco		! rlc is the root of the largest non-percolating cluster, r_perc the root of the percolating cluster
+	integer :: dx,dy,r,c
 !	integer, dimension(4)    :: b,r
 	integer, dimension(L**2) :: wrapping
    	integer, dimension(L**2) :: pp
         integer, dimension(L**2) :: psites		! psites(n) is the size of the percolating cluster for the configuration with n occupied sites
 	integer(kind=8), dimension(L**2) :: lc		! largest non-percolating cluster size
 	integer(kind=8), dimension(L**2) :: susc	! susc(n) is the sum of the squares of sizes of non-percolating cluster, in the config. with n occupied sites
-
+	perco=0
         do i=1, N
           ptr(i)=empty
 	  disp(i,:)=0
@@ -229,6 +229,26 @@ end function compute_disp
 			end if
 			r_perc=r1
 		end if
+	perco=perco+1
+	if(perco==1) then
+!	here we print the system configuration
+	write(15,*) "# n= ", a	! <--- we print the number of occupied sites at which percolation occured
+	do a=1,L
+		do z=1,L
+			s=(a-1)*L+z
+			if(ptr(s).eq.empty) then
+				c=0	! <--- empty sites are represented by zeros
+			else
+			 	c=1	! <--- occupied sites are represente by 1s
+				r=findroot(s)
+				if(wrapping(r)==1) c=2 ! <--- if an occupied site belongs to a crossing cluster, we represent it by a 2
+			endif
+			write(15,advance='no',fmt='(x,i1)') c	
+			if(z.eq.L) write(15,*)			! <--- go to next line when we printed the entire row
+		end do
+	end do
+! 	at the end we printed a matrix of 0s, 1s and 2s
+	endif
 	end if
 
 	if(r_perc.ne.empty) psites(i)=-ptr(r_perc)	! <--- update psites if there is a percolating cluster
@@ -295,14 +315,15 @@ program main
     use constants_mcp
     use random_functions
     integer :: m
-
     call boundaries
     open(unit = 14, file = 'susc.res')
     moyenne_observable:do m=1,nrepet
+    open(unit = 15, file = 'perc-config.dat',status='replace',action='write') ! <--- file that will contain the percolating configuration
 !    call random_seed() !to init the seed for random number generation
     call permutation
     call PBCpercolate
 !	print*,"sample n. = ",m
+    close(15)
     enddo moyenne_observable
     p_infinite_n=p_infinite_n/nrepet
     perc_prob_n=perc_prob_n/nrepet
