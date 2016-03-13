@@ -273,13 +273,14 @@ end function compute_disp
         integer :: i,j,k,a,z,s,s1,s2,r1,r2,big=0
 !	integer :: wrapping
 	integer :: rmin,r_perc,rlc,perco		! rlc is the root of the largest non-percolating cluster, r_perc the root of the percolating cluster
-	integer :: dx,dy,r,c
+	integer :: dx,dy,r,c,kk
 !	integer, dimension(4)    :: b,r
 	integer, dimension(L**2) :: wrapping
    	integer, dimension(L**2) :: pp
         integer, dimension(L**2) :: psites		! psites(n) is the size of the percolating cluster for the configuration with n occupied sites
 	integer(kind=8), dimension(L**2) :: lc		! largest non-percolating cluster size
 	integer(kind=8), dimension(L**2) :: susc	! susc(n) is the sum of the squares of sizes of non-percolating cluster, in the config. with n occupied sites
+	kk=0
 	perco=0
         do i=1, N
           ptr(i)=empty
@@ -392,8 +393,10 @@ end function compute_disp
 			r_perc=r1
 		end if
 	perco=perco+1
-	if(perco==1) then
+	kk=kk+1
+	if(perco>1 .and. perco<100) then
 !	here we print the system configuration
+	open(15,file='nom',kk,'.res')
 	write(15,*) "# n= ", a	! <--- we print the number of occupied sites at which percolation occured
 	do a=1,L
 		do z=1,L
@@ -410,6 +413,7 @@ end function compute_disp
 		end do
 	end do
 ! 	at the end we printed a matrix of 0s, 1s and 2s
+	close(15)
 	endif
 	end if
 
