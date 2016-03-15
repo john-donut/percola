@@ -1,0 +1,32 @@
+set autoscale
+set size ratio 1
+
+set xtics 0.5,1
+set ytics 0.5,1
+set grid front linetype -1
+
+set format x ""
+set format y ""
+
+set xrange[-0.5:49.5] 
+set yrange[-0.5:49.5]
+# if the lattice size is L range must be modified accordingly [ -0.5 : L -0.5]
+
+unset key
+unset label
+
+set cbrange [0.0:2.0]
+set palette defined ( 0 'white', 1 'red', 2 'blue')
+
+unset colorbox
+
+#set title 'Percolating configuration (FBC)'
+
+plot 'perc-config.dat' matrix with image
+
+set terminal postscript enhanced color
+set output 'perc-config.ps'
+replot
+set output
+
+
