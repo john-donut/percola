@@ -11,6 +11,7 @@
 
 module constants_mcp
     implicit none
+    integer ::leon,kk
     integer, parameter 		   :: dp=100		! number of different values of p in interval (0,1) that are considered
 	!	other variables
     real(8)		   		   :: delta_p		! distance between consecutive values of p, we choose M equidistant points in the interval (0,1)
@@ -270,18 +271,16 @@ end function compute_disp
         !3. Each bond added joins together two sites. We follow pointers from each of these sites separately until we reach the root sites of the clusters to which they belong. Then we go back along the paths we followed through each tree and adjust all pointers along those paths to point directly to the corresponding root sites.
         !4. If the two root sites are the same site, we need do nothing further.
         !5. If the two root nodes are different, we examine the cluster sizes stored in them, and add a pointer from the root of the smaller cluster to the root of the larger, thereby making the smaller tree a subtree of the larger one. If the two are the same size, we may choose whichever tree we like to be the subtree of the other. We also update the size of ethe larger cluster by adding the size of the smaller one to it.
-        integer :: i,j,k,a,z,s,s1,s2,r1,r2,big=0
+        integer :: i,j,k,s,s1,s2,r1,r2,big=0
 !	integer :: wrapping
-	integer :: rmin,r_perc,rlc,perco		! rlc is the root of the largest non-percolating cluster, r_perc the root of the percolating cluster
-	integer :: dx,dy,r,c,kk
+	integer :: rmin,r_perc,rlc		! rlc is the root of the largest non-percolating cluster, r_perc the root of the percolating cluster
+	integer :: dx,dy,r
 !	integer, dimension(4)    :: b,r
 	integer, dimension(L**2) :: wrapping
    	integer, dimension(L**2) :: pp
         integer, dimension(L**2) :: psites		! psites(n) is the size of the percolating cluster for the configuration with n occupied sites
 	integer(kind=8), dimension(L**2) :: lc		! largest non-percolating cluster size
 	integer(kind=8), dimension(L**2) :: susc	! susc(n) is the sum of the squares of sizes of non-percolating cluster, in the config. with n occupied sites
-	kk=0
-	perco=0
         do i=1, N
           ptr(i)=empty
 	  disp(i,:)=0
@@ -392,29 +391,6 @@ end function compute_disp
 			end if
 			r_perc=r1
 		end if
-	perco=perco+1
-	kk=kk+1
-	if(perco>1 .and. perco<100) then
-!	here we print the system configuration
-	open(15,file='nom',kk,'.res')
-	write(15,*) "# n= ", a	! <--- we print the number of occupied sites at which percolation occured
-	do a=1,L
-		do z=1,L
-			s=(a-1)*L+z
-			if(ptr(s).eq.empty) then
-				c=0	! <--- empty sites are represented by zeros
-			else
-			 	c=1	! <--- occupied sites are represente by 1s
-				r=findroot(s)
-				if(wrapping(r)==1) c=2 ! <--- if an occupied site belongs to a crossing cluster, we represent it by a 2
-			endif
-			write(15,advance='no',fmt='(x,i1)') c	
-			if(z.eq.L) write(15,*)			! <--- go to next line when we printed the entire row
-		end do
-	end do
-! 	at the end we printed a matrix of 0s, 1s and 2s
-	close(15)
-	endif
 	end if
 
 	if(r_perc.ne.empty) psites(i)=-ptr(r_perc)	! <--- update psites if there is a percolating cluster
@@ -442,7 +418,7 @@ end function compute_disp
 		end do
 	end if
 
-
+    call animation(wrapping,i)
 
 	lc(i+1)=lc(i)
         pp(i+1)=pp(i)
@@ -450,7 +426,6 @@ end function compute_disp
 	susc(i+1)=susc(i)
 
         enddo
-
 !	trivial values
         pp(L**2)=1
         psites(L**2)=L**2
@@ -463,6 +438,55 @@ end function compute_disp
 	lcn=lcn+1.0*lc
 
     end subroutine
+
+subroutine animation(wrapping,i)
+implicit none
+integer, dimension(L**2) :: wrapping
+integer :: c,r,a,z,i,s
+    kk=kk+1
+	if(leon==1) then
+!	here we print the system configuration
+	open(15,file='table.dat')
+	write(15,*) "# n= ", i	! <--- we print the number of occupied sites at which percolation occured
+	do a=1,L
+		do z=1,L
+			s=(a-1)*L+z
+			if(ptr(s).eq.empty) then
+				c=0	! <--- empty sites are represented by zeros
+			else
+			 	c=1	! <--- occupied sites are represente by 1s
+				r=findroot(s)
+				if(wrapping(r)==1) c=2 ! <--- if an occupied site belongs to a crossing cluster, we represent it by a 2
+			endif
+			write(15,advance='no',fmt='(x,i1)') c	
+			if(z.eq.L) write(15,*)			! <--- go to next line when we printed the entire row
+		end do
+	end do
+! 	at the end we printed a matrix of 0s, 1s and 2s
+    open(16, file='anim.plot')
+    write(16,*) 'set autoscale'
+    write(16,*) 'set size ratio 1'
+    write(16,*) 'set xtics 0.5,1'
+    write(16,*) 'set ytics 0.5,1'
+    write(16,*) 'set grid front linetype -1'
+    write(16,*) 'set format x ""'
+    write(16,*) 'set format y ""'
+    write(16,*) 'set xrange[-0.5:49.5]'
+    write(16,*) 'set yrange[-0.5:49.5]'
+    write(16,*) 'unset key'
+    write(16,*) 'unset label'
+    write(16,*) 'set cbrange [0.0:2.0]'
+    write(16,*) 'set palette defined ( 0 ''white'', 1 ''red'', 2 ''blue'')'
+    write(16,*) 'unset colorbox'
+    write(16,*) 'set term png'
+    write(16,'(a,i5.5,a)') "set output 'a",kk,".png'"
+    write(16,*) 'plot ''table.dat'' matrix with image'
+    close(16)
+    call system('gnuplot anim.plot')
+	close(15)
+	endif
+
+end subroutine animation
 
     subroutine susceptibilite(i, nb_fusion, nb_cluster)
 
@@ -481,6 +505,8 @@ program main
     use constants_mcp
     use random_functions
     integer :: m
+    leon=1
+    kk=0
     call boundaries
     open(unit = 14, file = 'susc.res')
     moyenne_observable:do m=1,nrepet
@@ -490,6 +516,7 @@ program main
     call PBCpercolate
 !	print*,"sample n. = ",m
     close(15)
+    leon=leon+1
     enddo moyenne_observable
     p_infinite_n=p_infinite_n/nrepet
     perc_prob_n=perc_prob_n/nrepet
@@ -501,4 +528,5 @@ program main
     close(14)
     print*, 'done!'
     call convolution
+    call system('avconv -r 25    -i a%05d.png -vcodec mjpeg -qscale 1 -y test.avi')
 end program main
