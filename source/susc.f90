@@ -528,5 +528,6 @@ program main
     close(14)
     print*, 'done!'
     call convolution
-    call system('avconv -r 25    -i a%05d.png -vcodec mjpeg -qscale 1 -y test.avi')
+    call system('avconv -r 25    -i a%05d.png -vcodec mjpeg -qscale 1 -y test2.avi')
+    call system('"rm" *.png')
 end program main
