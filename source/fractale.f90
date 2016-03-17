@@ -20,7 +20,7 @@ module constants_mcp
     real(8), dimension(dp)		   :: p_infinite_p	! probability that a site belongs to the percolating cluster as function of p
     real(8), dimension(dp)		   :: lc_p		! size of the largest non-percolating cluster as function of p
     real(8), dimension(dp)		   :: susc_p		! susceptibility as function of p
-    real(8), dimension(0:10)		   :: Masse
+    real(8), dimension(10)		   :: Masse
     integer, parameter :: L=50	  !Linear dimension
     integer, parameter :: nrepet=100 !nombre de répétition
     integer, parameter :: N=L*L
@@ -221,7 +221,9 @@ end function bindist_norecu
         order(i) = i    !Create a list of all the bonds in any convenient order. Positions in this list are numbered from 1 to M .
         enddo
         do i=1, N   !<- bug might come from here
-        j = i + (N-i)*rand()   !Choose a number j uniformly at random in the range i ≤ j ≤ M .
+        j = i + floor((N-i)*rand())   !Choose a number j uniformly at random in the range i ≤ j ≤ M .
+	if(j.ne.N) j=j+1	! this operation must be done, because it may happen that the random number generated is 0, then j would be equal to i
+!		exchange the positions of i-th and j-th elements of the array order
         temp = order(i)         !Exchange the bonds in positions i and j. (If i = j then nothing happens.)
         order(i) = order(j)
         order(j) = temp
@@ -509,13 +511,13 @@ end function compute_disp
             r=findroot(s)
             d=(i-25)**2+(j-25)**2
 			rayon=ceiling (sqrt(d))
-            if(wrapping(r)==1 .and. rayon<=10) then
+            if(wrapping(r)==1 .and. rayon<=10 .and. rayon>0) then
             Masse(rayon)=Masse(rayon)+1
             endif
 		end do
 	end do
     do i=1,9
-    Masse(i+1)=Masse(i)
+    Masse(i+1)=Masse(i)+Masse(i+1)
     enddo
     end subroutine fractal
 
@@ -526,11 +528,12 @@ program main
     use random_functions
     integer :: m
     leon=1
-    call random_seed() !to init the seed for random number generation
+   
     open(unit = 14, file = 'susc.res')
     open(unit = 56, file = 'masse.res')
     moyenne_observable:do m=1,nrepet
     eric=1
+	call random_seed() !to init the seed for random number generation
     open(unit = 15, file = 'perc-config.dat',status='replace',action='write') ! <--- file that will contain the percolating configuration
     call boundaries
     call permutation
@@ -548,7 +551,7 @@ program main
     write(14,*) m,perc_prob_n(m),p_infinite_n(m),lcn(m),susceptibility(m)
     enddo
     do m=1,10
-    write(56,*) m, Masse(i)
+    write(56,*) m, log(log(Masse(m)))
     enddo
     close(14)
     close(56)
