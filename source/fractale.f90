@@ -28,6 +28,7 @@ module constants_mcp
     real, dimension(L**2) :: p_infinite_n=0.0	! probability that a site belongs to the percolating cluster (order parameter) as function of n=number of occupied sites
     real(8), dimension(L**2)	:: lcn=0 	    ! size of the largest non-percolating cluster as function of n
     real(8), dimension(L**2)	:: susceptibility=0 ! susceptibility (average size of non-percolating clusters) 
+    real(8), dimension(L,L)	:: mass
     integer, parameter :: EMPTY=(-N-1)
     integer, dimension(N) :: ptr, order   
     integer, dimension(N,4) :: nn      		!Array of pointers, Nearest neighbors
@@ -381,9 +382,19 @@ end function compute_disp
         enddo
 	
 	if(wrapping(r1).eq.1) then
-    if(eric==1) then
+    if(eric==1 .and. leon==1) then
     eric=eric+1
-    call fractal(wrapping)
+    mass=0.0
+    do a=1,L
+		do z=1,L
+			s=(a-1)*L+z
+			if(ptr(s).ne.empty) then
+				r=findroot(s)
+				if(wrapping(r)==1) mass(a,z)=1
+			endif
+		end do
+	end do
+    call fractal
     endif
   
 		pp(i)=1		! <--- the first time that a wrapping cluster is encountered pp is set to 1 and all values pp(n) with larger n will be equal to 1
@@ -499,19 +510,16 @@ end function compute_disp
 
     end subroutine susceptibilite
 
-    subroutine fractal(wrapping)
+    subroutine fractal
         real(8) ::d
-        integer :: rayon,i,j,r,s
-        integer, dimension(L**2) :: wrapping
+        integer :: rayon,i,j
 
     Masse = 0
     do i=15,35
 		do j=15,35
-            s=(i-1)*L+j
-            r=findroot(s)
-            d=(i-25)**2+(j-25)**2
+            		d=(i-25)**2+(j-25)**2
 			rayon=ceiling (sqrt(d))
-            if(wrapping(r)==1 .and. rayon<=10 .and. rayon>0) then
+            if(mass(i,j)==1 .and. rayon<=10 .and. rayon>0) then
             Masse(rayon)=Masse(rayon)+1
             endif
 		end do
@@ -533,7 +541,7 @@ program main
     open(unit = 56, file = 'masse.res')
     moyenne_observable:do m=1,nrepet
     eric=1
-	call random_seed() !to init the seed for random number generation
+    call random_seed() !to init the seed for random number generation
     open(unit = 15, file = 'perc-config.dat',status='replace',action='write') ! <--- file that will contain the percolating configuration
     call boundaries
     call permutation
@@ -551,7 +559,7 @@ program main
     write(14,*) m,perc_prob_n(m),p_infinite_n(m),lcn(m),susceptibility(m)
     enddo
     do m=1,10
-    write(56,*) m, log(log(Masse(m)))
+    write(56,*) m, Masse(m)
     enddo
     close(14)
     close(56)
