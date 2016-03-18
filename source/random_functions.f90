@@ -81,6 +81,71 @@ contains
         endif
     end function
 
+    ! bindist() is the function that returns the values of non-normalized binomial distribution probabilities
+    ! the method used to compute them is the one suggested by Newman and Ziff in their paper
+    ! which uses a recursive relation
+    !
+    ! inputs: n,k,p
+    ! output: the (non-normalized) k-th coefficient B(n,k,p) of binomial distribution of parameters n and p
+    !
+    ! the way it works:
+    !  - compute k0 = the value of k for which B(n,k,p) is maximal ( k0 is the integer between p*(n+1)-1 and p*(n+1) )
+    !  - set the value of B(n,k0,p) to 1	(this is why we need later to properly normalize the coefficients)
+    !  - check if k is greater or smaller than k0
+    !  - if k < k0 THEN
+    !	- compute B(n,k,p) from B(n,k+1,p)
+    !    ELSE
+    !	- compute B(n,k,p) from B(n,k-1,p)
+    real(8) recursive function bindist(n,k,p)  result(b)
+        implicit none
+        integer, intent(in) :: n
+        integer, intent(in) :: k
+        real(8), intent(in) :: p
+        integer	            :: k0
+
+        k0=floor(p*(n+1))
+
+        if(k.eq.k0) then
+            b=1.0
+        else
+            if(k.lt.k0) then
+                b=bindist(n,k+1,p)*(k+1)/(n-k)*(1-p)/p
+            else
+                b=bindist(n,k-1,p)*(n-k+1)/k*p/(1-p)
+            end if
+        end if
+        return
+    end function bindist
+
+
+    function bindist_norecu(n,k,p) result(b)
+        implicit none
+        integer, intent(in) :: n
+        integer, intent(in) :: k
+        real(8), intent(in) :: p
+        real(8)		    :: b
+        integer	            :: k0
+        integer		    :: j
+
+        k0=floor(p*(n+1))
+        b=1.0
+
+        j=k
+        if(k.lt.k0) then
+            do while(j.lt.k0)
+            b=b*(j+1)/(n-j)*(1-p)/p
+            j=j+1
+            end do
+        else
+            do while(j.gt.k0)
+            b=b*(n-j+1)/j*p/(1-p)
+            j=j-1
+            end do
+        end if
+
+        return
+    end function bindist_norecu
+
     integer(8) function binomial(n,k) result(res)
         implicit none
         integer, intent(in) :: n,k
