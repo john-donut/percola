@@ -12,15 +12,16 @@
 module constants_mcp
     implicit none
     integer, parameter 		   :: dp=100		! number of different values of p in interval (0,1) that are considered
-    integer, parameter :: imax=10 ! nombre de point pour la moyenne sur la masse du cluster
+    integer, parameter :: imax=50 ! nombre de point pour la moyenne sur la masse du cluster
+    integer, parameter :: rmax=200
     real(8)		   		   :: delta_p		! distance between consecutive values of p, we choose M equidistant points in the interval (0,1)
     real(8), dimension(dp)		   :: perc_prob_p	! probability that there exists a percolating cluster as function of p
     real(8), dimension(dp)		   :: p_infinite_p	! probability that a site belongs to the percolating cluster as function of p
     real(8), dimension(dp)		   :: lc_p		! size of the largest non-percolating cluster as function of p
     real(8), dimension(dp)		   :: susc_p		! susceptibility as function of p
-    real(8), dimension(imax)		   :: Masse
-    integer, parameter :: L=50	  !Linear dimension
-    integer, parameter :: nrepet=100 !nombre de répétition
+    real(8), dimension(rmax)		   :: Masse=0
+    integer, parameter :: L=1000	  !Linear dimension
+    integer, parameter :: nrepet=1 !nombre de répétition
     integer, parameter :: N=L*L ! surface 
     real, dimension(L**2) :: perc_prob_n=0.0 ! probability that there exists a percolating cluster as function of n=number of occupied sites
     real, dimension(L**2) :: p_infinite_n=0.0	! probability that a site belongs to the percolating cluster as function of n=number of occupied sites
@@ -346,11 +347,12 @@ subroutine PBCpercolate(m)
         		endif
         	enddo
 		if(wrapping(r1).eq.1) then
+		mp=mp+1
     			if(mp==1 .and. m==1) then
     				compt=1
 				do while(compt<=imax)
-					ii=int(rand(0)*(39-11))+11
-					jj=int(rand(0)*(39-11))+11
+					ii=int(rand(0)*(799-201))+201
+					jj=int(rand(0)*(799-201))+201
 					ss=dwhere(ii,jj)
 					rr=findroot(ss)
 					if(wrapping(rr)==1) then
@@ -358,7 +360,7 @@ subroutine PBCpercolate(m)
 						compt=compt+1
 					endif
 				enddo
-				do s=1,9
+				do s=1,rmax-1
     					Masse(s+1)=Masse(s)+Masse(s+1)
     				enddo
     			endif
@@ -398,7 +400,7 @@ subroutine PBCpercolate(m)
 				end if
 			end do
 		end if
-		if(m==1) call animation(wrapping,i)
+		!if(m==1) call animation(wrapping,i)
 		lc(i+1)=lc(i)
         	pp(i+1)=pp(i)
         	psites(i+1)=psites(i)
@@ -469,13 +471,13 @@ subroutine fractale(ii,jj,wrapping)
         integer :: rayon,i,j,s,r
 	integer, dimension(L**2) :: wrapping
 
-    	do i=ii-10,ii+10
-		do j=jj-10,jj+10
+    	do i=ii-rmax,ii+rmax
+		do j=jj-rmax,jj+rmax
 			s=dwhere(i,j)
 			r=findroot(s)
             		d=(i-ii)**2+(j-jj)**2
 			rayon=ceiling (sqrt(d))
-            		if(wrapping(r)==1 .and. rayon<=10 .and. rayon>0) then
+            		if(wrapping(r)==1 .and. rayon<=200 .and. rayon>0) then
             			Masse(rayon)=Masse(rayon)+1
             		endif
 		end do
@@ -505,13 +507,13 @@ program main
     do m=1, N
     	write(14,*) m,perc_prob_n(m),p_infinite_n(m),lcn(m),susceptibility(m)
     enddo
-    do m=1,10
-    	write(56,*) m, Masse(m)
+    do m=1,rmax
+    	write(56,*) m, Masse(m),m**(1.8958)
     enddo
     close(14)
     close(56)
     print*, 'done! program'
-    call convolution
+    !call convolution
     !call system('avconv -r 25    -i a%05d.png -vcodec mjpeg -qscale 1 -y test.avi')
-    call system('"rm" *.png')
+    !call system('"rm" *.png')
 end program main
