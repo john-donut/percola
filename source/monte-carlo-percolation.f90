@@ -15,11 +15,13 @@ module constants_mcp
     real, dimension(L**2) :: perc_prob_n=0.0 ! probability that there exists a percolating cluster as function of n=number of occupied sites
     real, dimension(L**2)		   :: p_infinite_n=0.0	! probability that a site belongs to the percolating cluster (order parameter) as function of n=number of occupied sites
     integer, parameter :: EMPTY=(-N-1)
-    integer, dimension(N) :: ptr, order   !Array of pointers, Nearest neighbors
-    integer, dimension(N,4) :: nn      !Occupation order
+    integer, dimension(N) :: ptr, order   !Array of pointers, Occupation order
+    integer, dimension(N,4) :: nn      !Nearest neighbors
     integer, dimension(L**2)  :: pp
     integer, dimension(L**2,4) :: touch_border ! array used to determine if a cluster is crossing the system along one of the two directions
-contains
+    integer, dimension(N) :: fluid   !represents a fluid flowing along the cluster. 0=dry, 1=wet.
+
+    contains
 
     integer(8) function dwhere(x,y) result(i)
         integer, intent(in) :: x,y
@@ -74,17 +76,18 @@ contains
         !path compression: In the find part of the algorithm, trees are traversed to find their root sites. If two initial sites lead to the same root, then they belong to the same cluster. In addition, after the traversal is completed, all pointers along the path traversed are changed to point directly the root of their tree.
     end function
     
-    subroutine define_borders(bob)
+    subroutine define_borders(bob,dim)
         implicit none
         integer :: i
-        integer, dimension(L**2,4), intent(inout)  :: bob
+        integer, intent(in) :: dim
+        integer, dimension(L**2,dim), intent(inout)  :: bob
         bob=0
         do i=1,L
         bob((i-1)*L+1,1)=1 ! sites on right border
         bob(i*L,2)=1   ! sites on left border
         bob(i,3)=1     ! sites on top border
         bob(L*(L-1)+i,4)=1 ! sites on bottom border
-        end do
+        enddo
     end subroutine
 
     subroutine percolate
@@ -104,9 +107,10 @@ contains
         do i=1, N
         psites(i)=0
         ptr(i)=empty
-		pp(i)=0
+        pp(i)=0
         enddo
-        call define_borders(touch_border)
+        call define_borders(touch_border,4)
+        call define_borders(fluid,1)    !water everywhere around the "rock", should be fixed
     
         do i=1, N-1   !Sites are occupied in the order specified by the array order[]
         nb_fusion = 0
@@ -181,6 +185,35 @@ contains
 
     end subroutine susceptibilite
 
+    subroutine flow_progress(previous_array, next_array) !result(next_array)
+    !Called at every step of the progress of diffusion, it simulates the progress of the "fluid" in one iteration of time $\delta t$.
+        implicit none
+        integer, dimension(N), intent(in)               :: previous_array   !will contain the grid before
+        integer, dimension(N), intent(out)              :: next_array       !and after one iteration
+        integer :: i,j  !loop counter
+        integer :: flowing=0
+
+        next_array=previous_array
+
+        do i=1,N    !for every point of the grid
+            if(ptr(i) /= EMPTY) then    !if the site belongs to any cluster => replace by 'big' to select the biggest cluster
+                do j=1,4
+                    if (ptr(nn(i,j)) /= EMPTY) then !for each occupied neighbour
+                        flowing=previous_array(i)+previous_array(nn(i,j)) !those arrays will contain 1 or 0, occupied by fluid or not
+                        select case (flowing)
+                        case(0) !0+0 means no fluid at all
+                            continue
+                        case(1) !0+1 or 1+0 then it flows to the neighbour after delta t
+                            next_array(i)=1
+                            next_array(nn(i,j))=1
+                        case(2) !1+1 means fluid everywhere
+                            continue
+                        end select
+                    endif
+                enddo
+            endif
+        enddo
+    end subroutine flow_progress
 end module constants_mcp
 
 program main
@@ -207,7 +240,7 @@ program main
     enddo
 
     close(14)
-    close(10)
+    !close(10)
     close(11)
 end program main
 
