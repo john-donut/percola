@@ -102,10 +102,11 @@ contains
         write(*,*) "fail at start"   !if not
     end function ant_start
 
-    subroutine ant_average(step)
+    subroutine ant_average(step,wrapping)
         use random_functions
         integer i,j, ant_pos, ant_origin
         integer, intent(in) :: step
+        integer, dimension(L**2) :: wrapping
         real(8) :: temp
         real(8), dimension(nrepet,Nwalk) :: results
 
@@ -115,7 +116,7 @@ contains
         write(*,*) "start walking"
         do i=1, nrepet
         do j=1, Nwalk
-        call ant_progress(ant_pos)
+        call ant_progress(ant_pos,wrapping)
         results(i,j)=rms_displacement(ant_pos,ant_origin)
         enddo
         enddo
@@ -127,15 +128,17 @@ contains
         write(*,*) "finished writing"
     end subroutine ant_average
 
-    subroutine ant_progress(new)
+    subroutine ant_progress(new,wrapping)
         !at each step, random walk on the cluster
         use random_functions
-        integer :: i,direction, previous, distance
+        integer, dimension(L**2) :: wrapping
+        integer :: i,direction, previous, distance,zz
         integer, intent(inout) :: new
         previous=new
         do i=1,50   !will cover all possibilities
         direction=1 + 4*drand()
-        !if(ptr(nn(previous,direction)) /= EMPTY) then    !if the neighbour is on a cluster
+        zz=findroot(nn(previous,direction))
+        !if(wrapping(zz)==1) then    !if the neighbour is on a cluster
             new=nn(previous,direction)
             return
         else
@@ -437,7 +440,7 @@ contains
         if(wrapping(r1).eq.1) then
             mp=mp+1!1ere percolation
             if(m=1 .and. mod(i, 100)==0) then !computes and writes 1 point every 100, for the first lattice to avoid overflow
-                call ant_average(i)
+                call ant_average(i,wrapping)
             endif
             !if(mp==1 .and. m==1) then !1ere répétition, 1ere percolation
             !call ant_average()
