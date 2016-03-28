@@ -21,7 +21,7 @@ module constants_mcp
     real(8), dimension(dp)		   :: susc_p		! susceptibility as function of p
     real(8), dimension(rmax)		   :: Masse=0
     integer, parameter :: L=1000	  !Linear dimension
-    integer, parameter :: nrepet=10 !nombre de répétition
+    integer, parameter :: nrepet=100 !nombre de répétition
     integer, parameter :: N=L*L ! surface 
     real, dimension(L**2) :: perc_prob_n=0.0 ! probability that there exists a percolating cluster as function of n=number of occupied sites
     real, dimension(L**2) :: p_infinite_n=0.0	! probability that a site belongs to the percolating cluster as function of n=number of occupied sites
@@ -103,17 +103,27 @@ contains
     end function ant_start
 
     subroutine ant_average
-        integer i,j, ant_pos, ant_origin, rms
-
+        use random_functions
+        integer i,j, ant_pos, ant_origin
+        real(8) :: temp
+        real(8), dimension(nrepet,Nwalk) :: results
+        open(5,file="ant-walk.txt")
         ant_pos=ant_start()
         ant_origin=ant_pos
-        do j=1, nrepet
-        do i=1, Nwalk
+
+        write(*,*) "start walking"
+        do i=1, nrepet
+        do j=1, Nwalk
         call ant_progress(ant_pos)
-        !distance=compute_disp(ant_pos)
+        results(i,j)=rms_displacement(ant_pos,ant_origin)
         enddo
-        rms=rms_displacement(ant_pos,ant_origin)
         enddo
+        write(*,*) "going to write"
+
+        do j=1, Nwalk
+        write(5,*) j, mean_array(results(:,j),nrepet)  !at one given walk, averages over n repetitions
+        enddo
+        close(5)
     end subroutine ant_average
 
     subroutine ant_progress(new)
@@ -425,8 +435,9 @@ contains
         enddo
         if(wrapping(r1).eq.1) then
             mp=mp+1!1ere percolation
-            !call ant...
-            !if(mp==1 .and. m==1) then !1ere répétition, 1ere percolation
+            !call ant_average()
+            if(mp==1 .and. m==1) then !1ere répétition, 1ere percolation
+            call ant_average()
             !    compt=1
             !    do while(compt<=imax)
             !    ii=int(rand(0)*(799-201))+201
@@ -441,7 +452,7 @@ contains
             !    do s=1,rmax-1
             !    Masse(s+1)=Masse(s)+Masse(s+1)
             !    enddo
-            !endif
+            endif
             pp(i)=1		! <--- the first time that a wrapping cluster is encountered pp is set to 1 and all values pp(n) with larger n will be equal to 1
             if(-ptr(r1).gt.psites(i)) then	! <--- check if the wrapping cluster is the largest one
                 ! before we update r_perc, by giving to it the value r1
