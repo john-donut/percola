@@ -20,8 +20,8 @@ module constants_mcp
     real(8), dimension(dp)		   :: lc_p		! size of the largest non-percolating cluster as function of p
     real(8), dimension(dp)		   :: susc_p		! susceptibility as function of p
     real(8), dimension(rmax)		   :: Masse=0
-    integer, parameter :: L=1000	  !Linear dimension
-    integer, parameter :: nrepet=100 !nombre de répétition
+    integer, parameter :: L=150	  !Linear dimension
+    integer, parameter :: nrepet=100 !nombre de répétitions
     integer, parameter :: N=L*L ! surface 
     real, dimension(L**2) :: perc_prob_n=0.0 ! probability that there exists a percolating cluster as function of n=number of occupied sites
     real, dimension(L**2) :: p_infinite_n=0.0	! probability that a site belongs to the percolating cluster as function of n=number of occupied sites
@@ -102,12 +102,13 @@ contains
         write(*,*) "fail at start"   !if not
     end function ant_start
 
-    subroutine ant_average
+    subroutine ant_average(step)
         use random_functions
         integer i,j, ant_pos, ant_origin
+        integer, intent(in) :: step
         real(8) :: temp
         real(8), dimension(nrepet,Nwalk) :: results
-        open(5,file="ant-walk.txt")
+
         ant_pos=ant_start()
         ant_origin=ant_pos
 
@@ -121,9 +122,9 @@ contains
         write(*,*) "going to write"
 
         do j=1, Nwalk
-        write(5,*) j, mean_array(results(:,j),nrepet)  !at one given walk, averages over n repetitions
+        write(5,*) j, step, mean_array(results(:,j),nrepet)  !at one given walk, averages over n repetitions
         enddo
-        close(5)
+        write(*,*) "finished writing"
     end subroutine ant_average
 
     subroutine ant_progress(new)
@@ -134,7 +135,7 @@ contains
         previous=new
         do i=1,50   !will cover all possibilities
         direction=1 + 4*drand()
-        if(ptr(nn(previous,direction)) /= EMPTY) then    !if the neighbour is on a cluster
+        !if(ptr(nn(previous,direction)) /= EMPTY) then    !if the neighbour is on a cluster
             new=nn(previous,direction)
             return
         else
@@ -435,9 +436,11 @@ contains
         enddo
         if(wrapping(r1).eq.1) then
             mp=mp+1!1ere percolation
+            if(m=1 .and. mod(i, 100)==0) then !computes and writes 1 point every 100, for the first lattice to avoid overflow
+                call ant_average(i)
+            endif
+            !if(mp==1 .and. m==1) then !1ere répétition, 1ere percolation
             !call ant_average()
-            if(mp==1 .and. m==1) then !1ere répétition, 1ere percolation
-            call ant_average()
             !    compt=1
             !    do while(compt<=imax)
             !    ii=int(rand(0)*(799-201))+201
@@ -452,7 +455,7 @@ contains
             !    do s=1,rmax-1
             !    Masse(s+1)=Masse(s)+Masse(s+1)
             !    enddo
-            endif
+            !endif
             pp(i)=1		! <--- the first time that a wrapping cluster is encountered pp is set to 1 and all values pp(n) with larger n will be equal to 1
             if(-ptr(r1).gt.psites(i)) then	! <--- check if the wrapping cluster is the largest one
                 ! before we update r_perc, by giving to it the value r1
@@ -582,12 +585,15 @@ program main
 
     open(unit = 14, file = 'susc.res') 
     open(unit = 56, file = 'masse.res')
+    open(unit = 5,  file = "ant-walk.txt")
+
     moyenne_observable:do m=1,nrepet
     call random_seed() !to init the seed for random number generation
     call boundaries
     call permutation
     call PBCpercolate(m)
     enddo moyenne_observable
+
     p_infinite_n=p_infinite_n/nrepet
     perc_prob_n=perc_prob_n/nrepet
     lcn=lcn/nrepet
@@ -601,6 +607,7 @@ program main
     enddo
     close(14)
     close(56)
+    close(5)
     print*, 'done! program'
     !call convolution
     !call system('avconv -r 25    -i a%05d.png -vcodec mjpeg -qscale 1 -y test.avi')
