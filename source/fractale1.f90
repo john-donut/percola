@@ -20,8 +20,8 @@ module constants_mcp
     real(8), dimension(dp)		   :: lc_p		! size of the largest non-percolating cluster as function of p
     real(8), dimension(dp)		   :: susc_p		! susceptibility as function of p
     real(8), dimension(rmax)		   :: Masse=0
-    integer, parameter :: L=150	  !Linear dimension
-    integer, parameter :: nrepet=100 !nombre de répétitions
+    integer, parameter :: L=100	  !Linear dimension
+    integer, parameter :: nrepet=1000 !nombre de répétitions
     integer, parameter :: N=L*L ! surface 
     real, dimension(L**2) :: perc_prob_n=0.0 ! probability that there exists a percolating cluster as function of n=number of occupied sites
     real, dimension(L**2) :: p_infinite_n=0.0	! probability that a site belongs to the percolating cluster as function of n=number of occupied sites
@@ -83,34 +83,41 @@ contains
         displacement=sqrt(real(delta_x)**2+real(delta_y)**2)    !root mean square displacement
     end function
 
-    function ant_start() result(res)
+    function ant_start(wrapping) result(res)
         !chooses one point among the upper or left corner of the lattice on the percolating cluster, where the ant will start
         use random_functions
-        integer :: i,j, res  !starting point of the ant
+        integer :: i,j,s,temp,res  !starting point of the ant
+        integer, dimension(L**2), intent(in) :: wrapping
 
-        do i=1, L*(L-1)
-        j = 1 + (L+(L-1))*drand()   !Choose a number j uniformly at random in the range i ≤ j ≤ L*(L-1) .
-        if(ptr(i) /= EMPTY) then    !if we are on a cluster
-            if(1<j .and. j<=L) then !the 1 to L are the top of the lattice
-                res=j
-            else    !the first column 2 to L
-                res=dwhere(1,j-L+2)
-            endif
+        do i=1, L*(L-1) !more than enough to find suitable starting point
+        j = 1 + (L+(L-1))*drand()   !Choose a number j uniformly at random in the range i ≤ j ≤ L*(L-1)
+        if(1<j .and. j<=L) then !the 1 to L are the top of the lattice
+            temp=j
+        else    !the first column line 2 to L
+            temp=dwhere(1,j-L+1)
+        endif
+        !then we check if our starting point belongs to the percolating cluster
+        s=findroot(temp)
+        if(wrapping(s)==1) then !if so
+            res=j
             return  !we found a starting point
+        else
+            continue    !keep looking
         endif
         enddo
         write(*,*) "fail at start"   !if not
     end function ant_start
 
     subroutine ant_average(step,wrapping)
+        !For a given lattice with a parcolating cluster, starts numerous ants and calculates the euclidian norm from the origin.
         use random_functions
         integer i,j, ant_pos, ant_origin
         integer, intent(in) :: step
-        integer, dimension(L**2) :: wrapping
+        integer, dimension(L**2), intent(in) :: wrapping
         real(8) :: temp
         real(8), dimension(nrepet,Nwalk) :: results
 
-        ant_pos=ant_start()
+        ant_pos=ant_start(wrapping)
         ant_origin=ant_pos
 
         write(*,*) "start walking"
@@ -125,6 +132,7 @@ contains
         do j=1, Nwalk
         write(5,*) j, step, mean_array(results(:,j),nrepet)  !at one given walk, averages over n repetitions
         enddo
+        write(5,*)   !because of gnuplot set pm3d map.
         write(*,*) "finished writing"
     end subroutine ant_average
 
@@ -138,7 +146,7 @@ contains
         do i=1,50   !will cover all possibilities
         direction=1 + 4*drand()
         zz=findroot(nn(previous,direction))
-        !if(wrapping(zz)==1) then    !if the neighbour is on a cluster
+        if(wrapping(zz)==1) then    !if the neighbour is on the percolating cluster
             new=nn(previous,direction)
             return
         else
@@ -439,7 +447,7 @@ contains
         enddo
         if(wrapping(r1).eq.1) then
             mp=mp+1!1ere percolation
-            if(m=1 .and. mod(i, 100)==0) then !computes and writes 1 point every 100, for the first lattice to avoid overflow
+            if(m==1 .and. mod(i, 100)==0) then !computes and writes 1 point every 100, for the first lattice to avoid overflow
                 call ant_average(i,wrapping)
             endif
             !if(mp==1 .and. m==1) then !1ere répétition, 1ere percolation
